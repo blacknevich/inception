@@ -1,0 +1,59 @@
+version: '3.7'
+# version 1.29.2 of docker compose
+# localhost change in etc/hosts to ncarab.fr 
+
+#  dont forget to try define viriables like volumes
+
+volumes:
+        wordpress:
+                name: wordpress
+                driver: local
+                driver_opts:
+                        device: /home/nscarab/data/wordpress
+                        o: bind
+                        type: none
+        mariadb:
+                name: mariadb
+                driver: local
+                driver_opts:
+                        device: /home/nscarab/data/mariadb
+                        o: bind
+                        type: none
+networks:
+        localhost:
+                name: the_network
+services:
+        nginx:
+                depends_on:
+                        - wordpress
+                        #will wait for wordpress to start
+                container_name: nginx_container
+                build: /home/nscarab/srcs/requirements/nginx
+                        #path to image dockerfile dont forget to understatd dif image and c name
+                ports:
+                        - 443:443
+                volumes:
+                        - /home/nscarab/data/wordpress:/var/www/wordpress
+                        #why wordpress nginx use same volume
+                networks:
+                        - localhost
+                restart: always
+                        #try on failure check if able to show the work
+        mariadb:
+                container_name: mariadb_container
+                build: /home/nscarab/srcs/requirements/mariadb
+                volumes:
+                        - /home/nscarab/data/mariadb:/var/lib/mysql
+                networks:
+                        - localhost
+                restart: always
+        wordpress:
+                depends_on:
+                        - mariadb
+                container_name: wordpress_container
+                build: /home/nscarab/srcs/requirements/wordpress
+                volumes:
+                        - /home/nscarab/data/wordpress:/var/www/wordpress
+                networks:
+                        - localhost
+                restart: always
