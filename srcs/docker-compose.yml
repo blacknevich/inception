@@ -1,59 +1,76 @@
 version: '3.7'
-# version 1.29.2 of docker compose
-# localhost change in etc/hosts to ncarab.fr 
-
-#  dont forget to try define viriables like volumes
-
 volumes:
-        wordpress:
-                name: wordpress
-                driver: local
-                driver_opts:
-                        device: /home/nscarab/data/wordpress
-                        o: bind
-                        type: none
-        mariadb:
-                name: mariadb
-                driver: local
-                driver_opts:
-                        device: /home/nscarab/data/mariadb
-                        o: bind
-                        type: none
-networks:
-        localhost:
-                name: the_network
+ wordpress:
+  name: wordpress
+  driver: local
+  driver_opts:
+   device: /home/nscarab/data/wordpress
+   o: bind
+   type: none
+ mariadb:
+  name: mariadb
+  driver: local
+  driver_opts:
+   device: /home/nscarab/data/mariadb
+   o: bind
+   type: none
 services:
-        nginx:
-                depends_on:
-                        - wordpress
-                        #will wait for wordpress to start
-                container_name: nginx_container
-                build: /home/nscarab/srcs/requirements/nginx
-                        #path to image dockerfile dont forget to understatd dif image and c name
-                ports:
-                        - 443:443
-                volumes:
-                        - /home/nscarab/data/wordpress:/var/www/wordpress
-                        #why wordpress nginx use same volume
-                networks:
-                        - localhost
-                restart: always
-                        #try on failure check if able to show the work
-        mariadb:
-                container_name: mariadb_container
-                build: /home/nscarab/srcs/requirements/mariadb
-                volumes:
-                        - /home/nscarab/data/mariadb:/var/lib/mysql
-                networks:
-                        - localhost
-                restart: always
-        wordpress:
-                depends_on:
-                        - mariadb
-                container_name: wordpress_container
-                build: /home/nscarab/srcs/requirements/wordpress
-                volumes:
-                        - /home/nscarab/data/wordpress:/var/www/wordpress
-                networks:
-                        - localhost
-                restart: always
+ nginx:
+  depends_on:
+   - wordpress
+  container_name: nginx_container
+  build: ./requirements/nginx
+  image: nginx
+  ports:
+   - 443:443
+  volumes:
+   - wordpress:/var/www/wordpress
+  networks:
+   - the_network
+  restart: always
+ mariadb:
+  container_name: mariadb_container
+  build:
+   context: ./requirements/mariadb
+   args:
+    DB_NAME: ${WORDPRESS_DB_NAME}
+    MYSQL_USER: ${WORDPRESS_DB_USER}
+    MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+    MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+  image: mariadb
+  volumes:
+   - mariadb:/var/lib/mysql
+  environment:
+   - DB_NAME=${WORDPRESS_DB_NAME}
+   - MYSQL_USER=${WORDPRESS_DB_USER}
+   - MYSQL_PASSWORD=${WORDPRESS_DB_PASSWORD}
+   - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+  networks:
+   - the_network
+  restart: always
+ wordpress:
+  depends_on:
+   - mariadb
+  container_name: wordpress_container
+  build:
+   context: ./requirements/wordpress
+   args:
+    WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
+    WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+    WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+    WORDPRESS_DB_HOST: ${WORDPRESS_DB_HOST}
+  image: wordpress
+  volumes:
+   - wordpress:/var/www/wordpress
+  environment:
+   - WORDPRESS_DB_NAME=${WORDPRESS_DB_NAME}
+   - WORDPRESS_DB_USER=${WORDPRESS_DB_USER}
+   - WORDPRESS_DB_PASSWORD=${WORDPRESS_DB_PASSWORD}
+   - WORDPRESS_DB_HOST=${WORDPRESS_DB_HOST}
+  networks:
+   - the_network
+  restart: always
+
+networks:
+ the_network:
+  name: the_network

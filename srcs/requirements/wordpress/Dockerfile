@@ -1,35 +1,29 @@
 FROM debian:buster
-
+ARG WORDPRESS_DB_NAME
+ARG WORDPRESS_DB_USER
+ARG WORDPRESS_DB_PASSWORD
+ARG WORDPRESS_DB_HOST
 RUN apt-get update \
-        && apt-get -y install php7.3 php-mysqli php-fpm mariadb-client
+        && apt-get -y install php7.3 php-mysqli php-fpm mariadb-client curl vim
 
-COPY ./www.conf /etc/php/7.3/fpm/pool.d
+COPY ./fpm.conf /etc/php/7.3/fpm/pool.d/www.conf
 
 ADD https://ru.wordpress.org/wordpress-5.7.2-ru_RU.tar.gz /var/www/
 
 RUN cd /var/www && tar -xzvf wordpress-5.7.2-ru_RU.tar.gz \
         && rm -f /var/www/wordpress-5.7.2-ru_RU.tar.gz \
         && rm -f /var/www/wordpress/wp-config-sample.php \
-        && chown -R www-data:www-data /var/www/wordpress && \
-        chmod -R 775 /var/www/wordpress 
+        && chown -R www-data:www-data /var/www/wordpress \
+        && chmod -R 775 /var/www/wordpress \
+	&& chmod -R 600 /etc/ssl/*
     
 COPY ./wp-config.php ./var/www/wordpress/
-
-#RUN apt-get update && apt-get -y install php7.3 \
-#php7.3-fpm \
-#wordpress \
-#php7.3-mysql \ 
-#&& mv /usr/share/wordpress /var/www/html \
-#&& chmod -R 600 /etc/ssl/*
-#
-#COPY ./www.conf /etc/php/7.3/fpm/pool.d
-#
-#COPY ./wp-config.php ./var/www/html/wordpress/
+COPY ./wp-edit.sh ./
 
 EXPOSE 9000
 
-#RUN chmod -R 777 /var/www/wordpress
-
 RUN mkdir ./run/php/
+RUN bash wp-edit.sh
 
 CMD ./usr/sbin/php-fpm7.3 -F
+
